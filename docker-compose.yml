@@ -1,0 +1,38 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: yt-downloader-backend
+    restart: unless-stopped
+    volumes:
+      - ./downloads:/app/downloads
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - yt-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/api/info', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: yt-downloader-frontend
+    restart: unless-stopped
+    ports:
+      - "18080:80"
+    depends_on:
+      - backend
+    networks:
+      - yt-network
+
+networks:
+  yt-network:
+    driver: bridge
+
+volumes:
+  downloads:
