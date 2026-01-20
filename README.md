@@ -2,14 +2,16 @@
 
 Nowoczesna aplikacja do pobierania filmów i muzyki z YouTube, zbudowana z wykorzystaniem React + Flask.
 
+99% aplikacji zostało napisane przez sztuczną inteligencję do użytku osobistego i rozwoju vibe codingu. Przestrzegaj licencji pobieranych nagrań!
+
 ## 📁 Struktura projektu
 
 ```
-youtube-downloader/
+YT-Downloader-v2/
 ├── docker-compose.yml
-├── Makefile (opcjonalnie)
+├── Makefile
 ├── README.md
-├── downloads/              # Katalog na pobrane pliki
+├── downloads/              
 ├── backend/
 │   ├── Dockerfile
 │   ├── requirements.txt
@@ -48,7 +50,7 @@ make up
 
 3. **Otwórz przeglądarkę**
 
-Aplikacja będzie dostępna pod adresem: `http://localhost:8080`
+Aplikacja będzie dostępna pod adresem: `http://localhost:18080`
 
 ## 🛠️ Komendy
 
@@ -149,21 +151,6 @@ docker-compose logs
 
 # Sprawdź status
 docker-compose ps
-```
-
-### Problem: Błąd CORS
-Sprawdź czy nginx.conf jest poprawnie skopiowany do kontenera frontendu.
-
-### Problem: Pobieranie nie działa
-```bash
-# Sprawdź logi backendu
-docker-compose logs backend
-
-# Wejdź do kontenera
-docker exec -it yt-downloader-backend bash
-
-# Sprawdź yt-dlp
-yt-dlp --version
 ```
 
 ## 📝 Licencja
