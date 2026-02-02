@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Video, Music, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Download, Video, Music, Loader2, AlertCircle, CheckCircle2, Youtube, Instagram, Facebook } from 'lucide-react';
 
 export default function YouTubeDownloader() {
   const [url, setUrl] = useState('');
@@ -11,9 +11,37 @@ export default function YouTubeDownloader() {
   const [selectedType, setSelectedType] = useState('video');
   const [selectedFormat, setSelectedFormat] = useState('');
 
+  const detectPlatform = (url) => {
+    const urlLower = url.toLowerCase();
+    if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) return 'youtube';
+    if (urlLower.includes('instagram.com')) return 'instagram';
+    if (urlLower.includes('facebook.com') || urlLower.includes('fb.watch')) return 'facebook';
+    if (urlLower.includes('tiktok.com')) return 'tiktok';
+    if (urlLower.includes('twitter.com') || urlLower.includes('x.com')) return 'twitter';
+    return 'other';
+  };
+
+  const getPlatformIcon = (platform) => {
+    switch(platform) {
+      case 'youtube': return <Youtube className="w-5 h-5" />;
+      case 'instagram': return <Instagram className="w-5 h-5" />;
+      case 'facebook': return <Facebook className="w-5 h-5" />;
+      default: return <Video className="w-5 h-5" />;
+    }
+  };
+
+  const getPlatformColor = (platform) => {
+    switch(platform) {
+      case 'youtube': return 'from-red-600 to-red-700';
+      case 'instagram': return 'from-pink-600 to-purple-600';
+      case 'facebook': return 'from-blue-600 to-blue-700';
+      default: return 'from-purple-600 to-pink-600';
+    }
+  };
+
   const fetchVideoInfo = async () => {
     if (!url.trim()) {
-      setError('Wprowadź URL z YouTube');
+      setError('Wprowadź URL');
       return;
     }
 
@@ -37,7 +65,7 @@ export default function YouTubeDownloader() {
           setSelectedFormat(data.formats[0].format_id);
         }
       } else {
-        setError(data.error || 'Nie udało się pobrać informacji o filmie');
+        setError(data.error || 'Nie udało się pobrać informacji o materiale');
       }
     } catch (err) {
       setError('Błąd połączenia z serwerem');
@@ -90,28 +118,30 @@ export default function YouTubeDownloader() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const platform = url ? detectPlatform(url) : null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
         <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-8">
+          <div className={`bg-gradient-to-r ${platform ? getPlatformColor(platform) : 'from-purple-600 to-pink-600'} p-8 transition-all duration-300`}>
             <div className="flex items-center gap-3 mb-2">
-              <Download className="w-8 h-8 text-white" />
-              <h1 className="text-3xl font-bold text-white">YouTube Downloader</h1>
+              {platform ? getPlatformIcon(platform) : <Download className="w-8 h-8 text-white" />}
+              <h1 className="text-3xl font-bold text-white">Multi Downloader</h1>
             </div>
-            <p className="text-purple-100">Pobieraj filmy i muzykę w najlepszej jakości</p>
+            <p className="text-white/90">YouTube • Instagram • Facebook • TikTok • Twitter</p>
           </div>
 
           <div className="p-8 space-y-6">
             <div className="space-y-3">
-              <label className="text-white font-medium block">URL z YouTube</label>
+              <label className="text-white font-medium block">URL materiału</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && fetchVideoInfo()}
-                  placeholder="https://www.youtube.com/watch?v=..."
+                  placeholder="https://..."
                   className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
                 <button
@@ -128,6 +158,30 @@ export default function YouTubeDownloader() {
                     'Pobierz info'
                   )}
                 </button>
+              </div>
+              
+              {/* Podpowiedzi dla różnych platform */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-2 flex items-center gap-1">
+                  <Youtube className="w-3 h-3 text-red-400" />
+                  <span className="text-red-200">YouTube</span>
+                </div>
+                <div className="bg-pink-500/20 border border-pink-500/30 rounded-lg p-2 flex items-center gap-1">
+                  <Instagram className="w-3 h-3 text-pink-400" />
+                  <span className="text-pink-200">Instagram</span>
+                </div>
+                <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-2 flex items-center gap-1">
+                  <Facebook className="w-3 h-3 text-blue-400" />
+                  <span className="text-blue-200">Facebook</span>
+                </div>
+                <div className="bg-cyan-500/20 border border-cyan-500/30 rounded-lg p-2 flex items-center gap-1">
+                  <Video className="w-3 h-3 text-cyan-400" />
+                  <span className="text-cyan-200">TikTok</span>
+                </div>
+                <div className="bg-sky-500/20 border border-sky-500/30 rounded-lg p-2 flex items-center gap-1">
+                  <Video className="w-3 h-3 text-sky-400" />
+                  <span className="text-sky-200">Twitter/X</span>
+                </div>
               </div>
             </div>
 
@@ -156,6 +210,13 @@ export default function YouTubeDownloader() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                     <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        {videoInfo.platform && (
+                          <span className={`px-2 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r ${getPlatformColor(videoInfo.platform)} text-white`}>
+                            {videoInfo.platform.toUpperCase()}
+                          </span>
+                        )}
+                      </div>
                       <h3 className="text-white font-semibold text-lg">{videoInfo.title}</h3>
                       {videoInfo.duration > 0 && (
                         <p className="text-white/80 text-sm mt-1">
@@ -251,7 +312,7 @@ export default function YouTubeDownloader() {
         </div>
 
         <div className="text-center mt-6 text-white/60 text-sm">
-          Obsługuje YouTube i wiele innych platform
+          Obsługuje YouTube, Instagram Reels, Facebook, TikTok, Twitter/X i wiele innych
         </div>
       </div>
     </div>

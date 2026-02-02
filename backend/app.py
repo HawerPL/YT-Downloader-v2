@@ -22,18 +22,31 @@ def get_info():
     if not url:
         return jsonify({'error': 'Brak URL'}), 400
     
+    # Wykryj platformę
+    platform = detect_platform(url)
+    
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
         'extract_flat': False,
-        # Workaround dla SABR
-        'extractor_args': {
+    }
+    
+    # Specjalne ustawienia dla różnych platform
+    if platform == 'youtube':
+        ydl_opts['extractor_args'] = {
             'youtube': {
                 'player_client': ['android', 'web'],
                 'skip': ['hls', 'dash']
             }
-        },
-    }
+        }
+    elif platform in ['instagram', 'facebook']:
+        # Instagram i Facebook wymagają dodatkowych headerów
+        ydl_opts['http_headers'] = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-us,en;q=0.5',
+            'Sec-Fetch-Mode': 'navigate',
+        }
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -42,40 +55,65 @@ def get_info():
             formats = []
             seen = set()
             
-            # Filtruj progresywne formaty (nie HLS/DASH)
-            for f in info.get('formats', []):
-                # Pomiń formaty HLS/DASH które powodują problemy
-                if f.get('protocol') in ['m3u8', 'm3u8_native', 'http_dash_segments']:
-                    continue
-                    
-                if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
-                    height = f.get('height', 0)
-                    if height and height not in seen and height <= 1080:  # Limit do 1080p dla stabilności
-                        seen.add(height)
+            # Dla Instagram/Facebook - często mają tylko jeden format
+            if platform in ['instagram', 'facebook']:
+                # Zbierz wszystkie formaty wideo
+                for f in info.get('formats', []):
+                    if f.get('vcodec') != 'none':
+                        height = f.get('height', 0)
+                        format_note = f.get('format_note', '')
+                        quality_label = f"{height}p" if height else format_note or "Standard"
+                        
                         formats.append({
                             'format_id': f['format_id'],
-                            'quality': f"{height}p",
+                            'quality': quality_label,
                             'ext': f.get('ext', 'mp4'),
                             'filesize': f.get('filesize', 0),
                             'protocol': f.get('protocol', 'https')
                         })
+                
+                # Jeśli brak formatów, dodaj domyślny
+                if not formats:
+                    formats.append({
+                        'format_id': 'best',
+                        'quality': 'Najlepsza dostępna',
+                        'ext': 'mp4',
+                        'filesize': info.get('filesize', 0),
+                        'protocol': 'https'
+                    })
+            else:
+                # YouTube - filtruj progresywne formaty
+                for f in info.get('formats', []):
+                    if f.get('protocol') in ['m3u8', 'm3u8_native', 'http_dash_segments']:
+                        continue
+                        
+                    if f.get('vcodec') != 'none' and f.get('acodec') != 'none':
+                        height = f.get('height', 0)
+                        if height and height not in seen and height <= 1080:
+                            seen.add(height)
+                            formats.append({
+                                'format_id': f['format_id'],
+                                'quality': f"{height}p",
+                                'ext': f.get('ext', 'mp4'),
+                                'filesize': f.get('filesize', 0),
+                                'protocol': f.get('protocol', 'https')
+                            })
+                
+                if not formats:
+                    formats.append({
+                        'format_id': 'best',
+                        'quality': 'Najlepsza dostępna',
+                        'ext': 'mp4',
+                        'filesize': 0,
+                        'protocol': 'https'
+                    })
             
-            # Jeśli brak progresywnych formatów, weź best
-            if not formats:
-                formats.append({
-                    'format_id': 'best',
-                    'quality': 'Najlepsza dostępna',
-                    'ext': 'mp4',
-                    'filesize': 0,
-                    'protocol': 'https'
-                })
+            formats.sort(key=lambda x: int(str(x['quality']).replace('p', '').replace('Najlepsza dostępna', '9999').replace('Standard', '500')), reverse=True)
             
-            formats.sort(key=lambda x: int(x['quality'].replace('p', '').replace('Najlepsza dostępna', '9999')), reverse=True)
-            
+            # Audio formaty
             audio_formats = []
             audio_seen = set()
             for f in info.get('formats', []):
-                # Pomiń HLS audio
                 if f.get('protocol') in ['m3u8', 'm3u8_native', 'http_dash_segments']:
                     continue
                     
@@ -89,7 +127,6 @@ def get_info():
                             'ext': f.get('ext', 'mp3')
                         })
             
-            # Dodaj domyślną opcję audio
             if not audio_formats:
                 audio_formats.append({
                     'format_id': 'bestaudio',
@@ -104,10 +141,27 @@ def get_info():
                 'thumbnail': info.get('thumbnail'),
                 'duration': info.get('duration', 0),
                 'formats': formats[:10],
-                'audio_formats': audio_formats[:5]
+                'audio_formats': audio_formats[:5],
+                'platform': platform
             })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+def detect_platform(url):
+    """Wykrywa platformę na podstawie URL"""
+    url_lower = url.lower()
+    if 'youtube.com' in url_lower or 'youtu.be' in url_lower:
+        return 'youtube'
+    elif 'instagram.com' in url_lower:
+        return 'instagram'
+    elif 'facebook.com' in url_lower or 'fb.watch' in url_lower or 'fb.com' in url_lower:
+        return 'facebook'
+    elif 'tiktok.com' in url_lower:
+        return 'tiktok'
+    elif 'twitter.com' in url_lower or 'x.com' in url_lower:
+        return 'twitter'
+    else:
+        return 'other'
 
 @app.route('/api/download', methods=['POST'])
 def download():

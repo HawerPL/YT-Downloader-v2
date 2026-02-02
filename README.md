@@ -1,6 +1,6 @@
 # YouTube Downloader
 
-Nowoczesna aplikacja do pobierania filmów i muzyki z YouTube, zbudowana z wykorzystaniem React + Flask.
+Nowoczesna aplikacja do pobierania filmów i muzyki z YouTube, tiktoków, rolek oraz filmów z X, która została zbudowana z wykorzystaniem React + Flask.
 
 99% aplikacji zostało napisane przez sztuczną inteligencję do użytku osobistego i rozwoju vibe codingu. Przestrzegaj licencji pobieranych nagrań!
 
